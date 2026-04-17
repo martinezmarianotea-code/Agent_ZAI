@@ -16,7 +16,7 @@ import customtkinter as ctk
 
 logger = logging.getLogger(__name__)
 
-from zai.config import cargar_config, guardar_config, DATASET_PATH, DICCIONARIO_PATH
+from zai.config import cargar_config, guardar_config, DATASET_PATH, DICCIONARIO_PATH, OLLAMA_MODEL_MAIN, OLLAMA_MODEL
 from zai.config import PDF_FONÉTICA, PDF_VOCAB
 from zai.excel import GestorDataset
 from zai.context import ContextoLinguistico
@@ -122,13 +122,14 @@ class AppZAI(ctk.CTk):
         threading.Thread(target=_cargar, daemon=True).start()
 
     def _recursos_listos(self) -> None:
-        modelos = f"Claude claude-opus-4-6"
         if self.agente and self.agente.ollama_disponible:
-            modelos += " + Ollama qwen2.5-coder:7b"
+            modelos = f"Ollama {OLLAMA_MODEL_MAIN} + {OLLAMA_MODEL}"
+        else:
+            modelos = "Ollama no disponible — ejecuta: ollama serve"
         self._statusbar.set(
             f"✓ {self.dataset.total:,} transcripciones · "
             f"{len(self.contexto.diccionario):,} palabras en diccionario · {modelos}",
-            color=VERDE,
+            color=VERDE if (self.agente and self.agente.ollama_disponible) else AMARILLO,
         )
         self._sidebar.habilitar()
         self._cambiar_vista("corrector")

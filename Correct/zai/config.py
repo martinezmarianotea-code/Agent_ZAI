@@ -4,12 +4,12 @@ config.py
 Configuración central de ZAI. Rutas, modelos, parámetros.
 
 Variables de entorno reconocidas:
-  ZAI_DATASET      — ruta al DataSet.xlsx
-  ZAI_DICCIONARIO  — ruta al Diccionario.xlsx
-  ZAI_OLLAMA_URL   — URL de Ollama (default: http://localhost:11434)
-  ZAI_OLLAMA_MODEL — modelo Ollama a usar
-  ZAI_CLAUDE_MODEL — modelo Claude a usar
-  ZAI_LOG_LEVEL    — nivel de log (DEBUG/INFO/WARNING, default: INFO)
+  ZAI_DATASET        — ruta al DataSet.xlsx
+  ZAI_DICCIONARIO    — ruta al Diccionario.xlsx
+  ZAI_OLLAMA_URL     — URL de Ollama (default: http://localhost:11434)
+  ZAI_OLLAMA_MODEL   — modelo rápido para clasificación batch
+  ZAI_OLLAMA_MAIN    — modelo principal para correcciones y chat
+  ZAI_LOG_LEVEL      — nivel de log (DEBUG/INFO/WARNING, default: INFO)
 """
 
 from pathlib import Path
@@ -36,9 +36,11 @@ HOJA_ESPANOL       = "traducciones"
 HOJA_PALABRAS      = "palabras_nuevas"
 
 # ── Modelos (sobrescribibles con env vars) ────────────────────────────
-CLAUDE_MODEL  = os.environ.get("ZAI_CLAUDE_MODEL", "claude-opus-4-6")
-OLLAMA_MODEL  = os.environ.get("ZAI_OLLAMA_MODEL", "qwen2.5-coder:7b")
-OLLAMA_URL    = os.environ.get("ZAI_OLLAMA_URL",   "http://localhost:11434")
+# Modelo rápido: clasificación batch, pre-análisis
+OLLAMA_MODEL      = os.environ.get("ZAI_OLLAMA_MODEL", "qwen2.5-coder:7b")
+# Modelo principal: correcciones profundas, chat, traducciones
+OLLAMA_MODEL_MAIN = os.environ.get("ZAI_OLLAMA_MAIN",  "qwen3:4b")
+OLLAMA_URL        = os.environ.get("ZAI_OLLAMA_URL",   "http://localhost:11434")
 
 # ── Parámetros de corrección ─────────────────────────────────────────
 AUTOGUARDADO_INTERVALO = 50   # filas
@@ -81,11 +83,11 @@ def configurar_logging() -> None:
 def cargar_config() -> dict:
     """Lee configuración persistente del usuario."""
     defaults = {
-        "dataset":     str(DATASET_PATH),
-        "diccionario": str(DICCIONARIO_PATH),
-        "ollama_model": OLLAMA_MODEL,
-        "claude_model": CLAUDE_MODEL,
-        "modo_inicio":  "corrector",
+        "dataset":          str(DATASET_PATH),
+        "diccionario":      str(DICCIONARIO_PATH),
+        "ollama_model":     OLLAMA_MODEL,
+        "ollama_model_main": OLLAMA_MODEL_MAIN,
+        "modo_inicio":      "corrector",
     }
     if CONFIG_FILE.exists():
         try:

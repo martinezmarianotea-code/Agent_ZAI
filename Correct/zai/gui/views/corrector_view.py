@@ -201,7 +201,7 @@ class CorrectorView(ctk.CTkFrame):
         self._ia_activa = True
         self._btn_analizar.configure(state="disabled", text="Analizando…")
         self._txt_ia.set("")
-        self._lbl_modelo.configure(text="claude-opus-4-6 · streaming")
+        self._lbl_modelo.configure(text="qwen3:4b · streaming")
 
         def _chunk(texto: str) -> None:
             self.after(0, lambda: self._txt_ia.append(texto))

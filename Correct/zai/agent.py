@@ -1,31 +1,21 @@
 """
 agent.py
 ========
-Núcleo de IA de ZAI: orquesta Claude (Anthropic) + Ollama (local) en paralelo.
+Núcleo de IA de ZAI: usa Ollama 100% local, sin APIs de pago.
 
-Estrategia híbrida:
-  - Ollama (qwen2.5-coder:7b, local, gratis, rápido):
-      * Pre-análisis rápido: detecta palabras en español, errores obvios
-      * Extracción masiva de palabras nuevas
-      * Búsquedas rápidas sin costo
-  - Claude claude-opus-4-6 (streaming, thinking adaptivo):
-      * Correcciones profundas con contexto español
-      * Modo chat conversacional
-      * Análisis lingüístico complejo
+Modelos:
+  - OLLAMA_MODEL_MAIN  (qwen3:4b)         — correcciones, chat, traducciones
+  - OLLAMA_MODEL_FAST  (qwen2.5-coder:7b) — clasificación batch rápida
 """
 
 from __future__ import annotations
 import json
 import logging
 import threading
-import time
 from typing import Callable, Optional
 import requests
 
-import anthropic
-from anthropic import RateLimitError, APIConnectionError, APIStatusError
-
-from zai.config import CLAUDE_MODEL, OLLAMA_MODEL, OLLAMA_URL
+from zai.config import OLLAMA_MODEL, OLLAMA_MODEL_MAIN, OLLAMA_URL
 from zai.context import ContextoLinguistico
 
 logger = logging.getLogger(__name__)
@@ -34,26 +24,19 @@ logger = logging.getLogger(__name__)
 # ── Agente principal ─────────────────────────────────────────────────
 
 class ZAIAgent:
-    """
-    Agente híbrido Claude + Ollama.
-    Todos los métodos de Claude usan streaming — el caller recibe
-    un iterador de chunks de texto.
-    """
+    """Agente 100% local usando Ollama."""
 
     def __init__(self, contexto: ContextoLinguistico):
         self.ctx = contexto
-        self._claude = anthropic.Anthropic()
         self._ollama_ok = self._verificar_ollama()
-
-        # System prompt completo (estable → prompt caching)
         self._system_corrector = contexto.system_prompt()
         self._system_chat      = contexto.system_prompt_chat()
 
-    # ── Verificación de Ollama ───────────────────────────────────────
+    # ── Verificación ─────────────────────────────────────────────────
 
     def _verificar_ollama(self) -> bool:
         try:
-            r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=2)
+            r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
             return r.status_code == 200
         except Exception:
             return False
@@ -63,7 +46,7 @@ class ZAIAgent:
         return self._ollama_ok
 
     # ════════════════════════════════════════════════════════════════
-    #  CLAUDE — Corrector de Transcripciones (streaming)
+    #  OLLAMA — Corrector de Transcripciones (streaming)
     # ════════════════════════════════════════════════════════════════
 
     def corregir_streaming(
@@ -76,67 +59,26 @@ class ZAIAgent:
         on_chunk:  Callable[[str], None],
         on_done:   Callable[[str], None],
     ) -> None:
-        """
-        Lanza la corrección de una fila en un thread separado.
-        Llama on_chunk(texto) por cada token recibido.
-        Llama on_done(texto_completo) al terminar.
-        """
+        """Corrección en streaming via Ollama."""
         def _run():
-            completo = []
+            if not self._ollama_ok:
+                msg = "[Ollama no disponible — ejecuta: ollama serve]"
+                on_chunk(msg)
+                on_done(msg)
+                return
+
             prompt_usuario = _prompt_correccion(zapoteco, espanol, n, total)
-            mensajes = historial + [{"role": "user", "content": prompt_usuario}]
-
-            for intento in range(3):
-                try:
-                    with self._claude.messages.stream(
-                        model=CLAUDE_MODEL,
-                        max_tokens=2048,
-                        thinking={"type": "adaptive"},
-                        system=[{
-                            "type": "text",
-                            "text": self._system_corrector,
-                            "cache_control": {"type": "ephemeral"},
-                        }],
-                        messages=mensajes,
-                    ) as stream:
-                        for text in stream.text_stream:
-                            completo.append(text)
-                            on_chunk(text)
-                    on_done("".join(completo))
-                    return
-                except RateLimitError:
-                    espera = 2 ** intento
-                    logger.warning("Claude rate limit, reintentando en %ss (intento %d/3)", espera, intento + 1)
-                    on_chunk(f"\n[Límite de tasa alcanzado, esperando {espera}s…]\n")
-                    time.sleep(espera)
-                    completo.clear()
-                except APIConnectionError as e:
-                    logger.error("Error de conexión con Claude: %s", e)
-                    msg = "\n[Sin conexión con Claude — verifica tu red o la API key]\n"
-                    on_chunk(msg)
-                    on_done(msg)
-                    return
-                except APIStatusError as e:
-                    logger.error("Claude API error %s: %s", e.status_code, e.message)
-                    msg = f"\n[Error de API ({e.status_code}): {e.message}]\n"
-                    on_chunk(msg)
-                    on_done(msg)
-                    return
-                except Exception as e:
-                    logger.exception("Error inesperado en corregir_streaming")
-                    msg = f"\n[Error inesperado: {e}]\n"
-                    on_chunk(msg)
-                    on_done(msg)
-                    return
-
-            msg = "\n[No se pudo conectar con Claude tras 3 intentos]\n"
-            on_chunk(msg)
-            on_done(msg)
+            mensajes = (
+                [{"role": "system", "content": self._system_corrector}]
+                + historial
+                + [{"role": "user", "content": prompt_usuario}]
+            )
+            _stream_ollama(OLLAMA_MODEL_MAIN, mensajes, on_chunk, on_done)
 
         threading.Thread(target=_run, daemon=True).start()
 
     # ════════════════════════════════════════════════════════════════
-    #  CLAUDE — Chat (streaming)
+    #  OLLAMA — Chat (streaming)
     # ════════════════════════════════════════════════════════════════
 
     def chat_streaming(
@@ -148,57 +90,27 @@ class ZAIAgent:
     ) -> None:
         """Chat libre sobre zapoteco. Streaming."""
         def _run():
-            completo = []
-            mensajes = historial + [{"role": "user", "content": mensaje}]
-            for intento in range(3):
-                try:
-                    with self._claude.messages.stream(
-                        model=CLAUDE_MODEL,
-                        max_tokens=1024,
-                        system=[{
-                            "type": "text",
-                            "text": self._system_chat,
-                            "cache_control": {"type": "ephemeral"},
-                        }],
-                        messages=mensajes,
-                    ) as stream:
-                        for text in stream.text_stream:
-                            completo.append(text)
-                            on_chunk(text)
-                    on_done("".join(completo))
-                    return
-                except RateLimitError:
-                    espera = 2 ** intento
-                    logger.warning("Claude rate limit en chat, reintentando en %ss", espera)
-                    time.sleep(espera)
-                    completo.clear()
-                except APIConnectionError as e:
-                    logger.error("Error de conexión con Claude (chat): %s", e)
-                    msg = "[Sin conexión con Claude]"
-                    on_chunk(msg)
-                    on_done(msg)
-                    return
-                except Exception as e:
-                    logger.exception("Error inesperado en chat_streaming")
-                    msg = f"[Error: {e}]"
-                    on_chunk(msg)
-                    on_done(msg)
-                    return
+            if not self._ollama_ok:
+                msg = "[Ollama no disponible — ejecuta: ollama serve]"
+                on_chunk(msg)
+                on_done(msg)
+                return
 
-            on_done("[No se pudo conectar con Claude tras 3 intentos]")
+            mensajes = (
+                [{"role": "system", "content": self._system_chat}]
+                + historial
+                + [{"role": "user", "content": mensaje}]
+            )
+            _stream_ollama(OLLAMA_MODEL_MAIN, mensajes, on_chunk, on_done)
 
         threading.Thread(target=_run, daemon=True).start()
 
     # ════════════════════════════════════════════════════════════════
-    #  OLLAMA — Pre-análisis rápido (síncrono, local)
+    #  OLLAMA — Pre-análisis rápido (síncrono)
     # ════════════════════════════════════════════════════════════════
 
     def preanalizar(self, zapoteco: str, espanol: str) -> dict:
-        """
-        Análisis rápido con Ollama antes de enviar a Claude.
-        Retorna dict con: palabras_sospechosas, en_espanol, observaciones.
-        Falla silenciosamente si Ollama no está disponible.
-        """
+        """Análisis rápido antes de la corrección principal."""
         if not self._ollama_ok:
             return {}
 
@@ -209,9 +121,9 @@ ESPAÑOL:  {espanol}
 
 Responde SOLO con JSON (sin markdown, sin explicación):
 {{
-  "palabras_espanol": ["lista", "de", "palabras", "que", "parecen", "español"],
-  "palabras_dudosas": ["palabras", "que", "podrían", "tener", "error"],
-  "observacion": "una sola línea con el problema principal si lo hay"
+  "palabras_espanol": ["palabras que parecen español"],
+  "palabras_dudosas": ["palabras con posible error"],
+  "observacion": "problema principal en una línea"
 }}"""
 
         try:
@@ -223,7 +135,7 @@ Responde SOLO con JSON (sin markdown, sin explicación):
                     "stream": False,
                     "options": {"temperature": 0.1, "num_predict": 200},
                 },
-                timeout=10,
+                timeout=30,
             )
             content = _extraer_contenido_ollama(r)
             if not content:
@@ -243,16 +155,17 @@ Responde SOLO con JSON (sin markdown, sin explicación):
             logger.exception("Error inesperado en preanalizar")
         return {}
 
+    # ════════════════════════════════════════════════════════════════
+    #  OLLAMA — Extracción batch de palabras nuevas
+    # ════════════════════════════════════════════════════════════════
+
     def extraer_palabras_nuevas_batch(
         self,
         tokens: list[str],
         diccionario: set[str],
         on_progreso: Optional[Callable[[int, int], None]] = None,
     ) -> list[dict]:
-        """
-        Usa Ollama para analizar tokens desconocidos en lotes.
-        Retorna lista de {zapoteco, espanol, es_nueva}.
-        """
+        """Clasifica tokens desconocidos en lotes usando Ollama."""
         if not self._ollama_ok:
             return []
 
@@ -285,15 +198,14 @@ Palabras: {json.dumps(lote, ensure_ascii=False)}"""
                         "stream": False,
                         "options": {"temperature": 0.1, "num_predict": 600},
                     },
-                    timeout=20,
+                    timeout=60,
                 )
                 content = _extraer_contenido_ollama(r)
                 if content:
                     inicio = content.find("[")
                     fin    = content.rfind("]") + 1
                     if inicio >= 0 and fin > inicio:
-                        items = json.loads(content[inicio:fin])
-                        resultados.extend(items)
+                        resultados.extend(json.loads(content[inicio:fin]))
             except requests.Timeout:
                 logger.warning("Ollama timeout en lote %d-%d", i, i + LOTE)
             except requests.ConnectionError:
@@ -308,7 +220,7 @@ Palabras: {json.dumps(lote, ensure_ascii=False)}"""
         return resultados
 
     # ════════════════════════════════════════════════════════════════
-    #  CLAUDE — Generar traducciones para palabras nuevas
+    #  OLLAMA — Sugerir traducciones (streaming)
     # ════════════════════════════════════════════════════════════════
 
     def sugerir_traduccion(
@@ -317,57 +229,37 @@ Palabras: {json.dumps(lote, ensure_ascii=False)}"""
         on_chunk: Callable[[str], None],
         on_done:  Callable[[str], None],
     ) -> None:
-        """Pide a Claude que sugiera traducciones para palabras nuevas."""
+        """Sugiere traducciones para palabras nuevas. Streaming."""
         def _run():
-            completo = []
+            if not self._ollama_ok:
+                msg = "[Ollama no disponible]"
+                on_chunk(msg)
+                on_done(msg)
+                return
+
             lista = "\n".join(f"- {p}" for p in palabras[:40])
             prompt = (
                 f"Las siguientes palabras fueron encontradas en transcripciones "
                 f"de Zapoteco del Istmo y NO están en el diccionario.\n"
                 f"Para cada una, sugiere su posible significado en español "
-                f"(basándote en similitud con palabras conocidas, morfología, o contexto).\n"
-                f"Formato: `palabra → significado posible (nivel de certeza: alto/medio/bajo)`\n\n"
+                f"(morfología, similitud con palabras conocidas, contexto).\n"
+                f"Formato: `palabra → significado posible (certeza: alta/media/baja)`\n\n"
                 f"{lista}"
             )
-            try:
-                with self._claude.messages.stream(
-                    model=CLAUDE_MODEL,
-                    max_tokens=1500,
-                    system=[{
-                        "type": "text",
-                        "text": self._system_corrector,
-                        "cache_control": {"type": "ephemeral"},
-                    }],
-                    messages=[{"role": "user", "content": prompt}],
-                ) as stream:
-                    for text in stream.text_stream:
-                        completo.append(text)
-                        on_chunk(text)
-                on_done("".join(completo))
-            except RateLimitError:
-                logger.warning("Claude rate limit en sugerir_traduccion")
-                msg = "[Límite de tasa alcanzado — intenta en unos segundos]"
-                on_chunk(msg)
-                on_done(msg)
-            except APIConnectionError as e:
-                logger.error("Sin conexión con Claude en sugerir_traduccion: %s", e)
-                msg = "[Sin conexión con Claude]"
-                on_chunk(msg)
-                on_done(msg)
-            except Exception as e:
-                logger.exception("Error inesperado en sugerir_traduccion")
-                msg = f"[Error: {e}]"
-                on_chunk(msg)
-                on_done(msg)
+            mensajes = [
+                {"role": "system", "content": self._system_corrector},
+                {"role": "user",   "content": prompt},
+            ]
+            _stream_ollama(OLLAMA_MODEL_MAIN, mensajes, on_chunk, on_done)
 
         threading.Thread(target=_run, daemon=True).start()
 
     # ════════════════════════════════════════════════════════════════
-    #  OLLAMA — Consulta rápida (síncrona, para la GUI)
+    #  OLLAMA — Consulta rápida (síncrona)
     # ════════════════════════════════════════════════════════════════
 
     def consulta_rapida(self, pregunta: str) -> str:
-        """Respuesta rápida con Ollama (para sugerencias inline, completado, etc.)."""
+        """Respuesta rápida con Ollama para sugerencias inline."""
         if not self._ollama_ok:
             return ""
         try:
@@ -379,7 +271,7 @@ Palabras: {json.dumps(lote, ensure_ascii=False)}"""
                     "stream": False,
                     "options": {"temperature": 0.2, "num_predict": 150},
                 },
-                timeout=8,
+                timeout=15,
             )
             return _extraer_contenido_ollama(r)
         except requests.Timeout:
@@ -394,17 +286,64 @@ Palabras: {json.dumps(lote, ensure_ascii=False)}"""
 
 # ── Helpers internos ─────────────────────────────────────────────────
 
+def _stream_ollama(
+    model: str,
+    mensajes: list[dict],
+    on_chunk: Callable[[str], None],
+    on_done:  Callable[[str], None],
+) -> None:
+    """Llama a /api/chat con stream=True y envía chunks al caller."""
+    completo: list[str] = []
+    try:
+        with requests.post(
+            f"{OLLAMA_URL}/api/chat",
+            json={
+                "model": model,
+                "messages": mensajes,
+                "stream": True,
+                "options": {"temperature": 0.3, "num_predict": 2048},
+            },
+            stream=True,
+            timeout=120,
+        ) as resp:
+            resp.raise_for_status()
+            for linea in resp.iter_lines():
+                if not linea:
+                    continue
+                try:
+                    data = json.loads(linea)
+                except json.JSONDecodeError:
+                    continue
+                chunk = data.get("message", {}).get("content", "")
+                if chunk:
+                    completo.append(chunk)
+                    on_chunk(chunk)
+                if data.get("done"):
+                    break
+        on_done("".join(completo))
+    except requests.Timeout:
+        msg = "\n[Ollama tardó demasiado — intenta con un modelo más pequeño]\n"
+        on_chunk(msg)
+        on_done(msg)
+    except requests.ConnectionError:
+        msg = "\n[Ollama no disponible — ejecuta: ollama serve]\n"
+        on_chunk(msg)
+        on_done(msg)
+    except Exception:
+        logger.exception("Error en _stream_ollama")
+        on_chunk("\n[Error al comunicarse con Ollama]\n")
+        on_done("")
+
+
 def _extraer_contenido_ollama(response: requests.Response) -> str:
-    """Extrae el texto de respuesta de Ollama de forma robusta."""
+    """Extrae el texto de una respuesta Ollama no-streaming."""
     try:
         data = response.json()
     except json.JSONDecodeError:
         logger.warning("Respuesta de Ollama no es JSON válido")
         return ""
-    # Formato /api/chat: {"message": {"content": "..."}}
     if "message" in data:
         return str(data["message"].get("content", "")).strip()
-    # Formato /api/generate: {"response": "..."}
     if "response" in data:
         return str(data["response"]).strip()
     logger.warning("Formato de respuesta Ollama desconocido: %s", list(data.keys()))
