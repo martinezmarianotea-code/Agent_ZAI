@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l \"/home/mariano/ZAI/Correct/ZAI Correct form/\"*.txt \"/home/mariano/ZAI/Correct/ZAI Filter/\"*.txt \"/home/mariano/ZAI/Correct/ZAI Oder by dic/\"*.txt)",
+      "Bash(du -sh /home/mariano/ZAI/Correct/*/)",
+      "Bash(pip install:*)",
+      "Bash(python -c \":*)"
+    ]
+  }
+}

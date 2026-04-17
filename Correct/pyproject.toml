@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "zai"
+version = "2.0.0"
+description = "ZAI — Agente Inteligente para Zapoteco del Istmo (Diidxazá)"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.45",
+    "ollama>=0.4",
+    "pandas>=2.0",
+    "openpyxl>=3.1",
+    "pypdf>=4.0",
+    "customtkinter>=5.2",
+    "pillow>=10.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["zai*"]
+
+[project.scripts]
+zai-cli = "zai.__main__:main"
+
+[project.gui-scripts]
+zai = "zai.__main__:main"
