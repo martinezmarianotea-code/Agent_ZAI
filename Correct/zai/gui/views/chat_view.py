@@ -7,22 +7,12 @@ Burbujas de chat, streaming en tiempo real.
 
 from __future__ import annotations
 import tkinter as tk
-from tkinter import scrolledtext
 import customtkinter as ctk
 
 from zai.modes.chat import ModoChat, MensajeChat
-
-BG_MAIN   = "#0d1117"
-BG_CARD   = "#161b22"
-BG_INPUT  = "#21262d"
-ACCENT    = "#0f3460"
-ACCENT_L  = "#e94560"
-TEXT      = "#eaeaea"
-TEXT_DIM  = "#8892a0"
-VERDE     = "#2ea043"
-AZUL      = "#1f6feb"
-BURBUJA_U = "#1f6feb"   # burbuja usuario
-BURBUJA_A = "#21262d"   # burbuja asistente
+from zai.gui.theme import BG_MAIN, BG_CARD, BG_INPUT, ACCENT, ACCENT_L, TEXT, TEXT_DIM, VERDE, ROJO, AMARILLO
+BURBUJA_U = AZUL       = "#1f6feb"   # burbuja usuario
+BURBUJA_A = BG_INPUT                 # burbuja asistente
 
 
 class ChatView(ctk.CTkFrame):
@@ -75,7 +65,10 @@ class ChatView(ctk.CTkFrame):
 
         self._msg_frame.bind("<Configure>", self._on_frame_resize)
         self._canvas.bind("<Configure>", self._on_canvas_resize)
+        # Scroll multiplataforma: Windows/Mac usan <MouseWheel>, Linux usa <Button-4/5>
         self._canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        self._canvas.bind_all("<Button-4>",   lambda e: self._canvas.yview_scroll(-1, "units"))
+        self._canvas.bind_all("<Button-5>",   lambda e: self._canvas.yview_scroll( 1, "units"))
 
         # Input
         input_frame = ctk.CTkFrame(self, fg_color=BG_CARD, height=68, corner_radius=0)
@@ -237,4 +230,7 @@ class ChatView(ctk.CTkFrame):
         self._canvas.itemconfig(self._canvas_window, width=event.width - 16)
 
     def _on_mousewheel(self, event) -> None:
-        self._canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        # Windows: event.delta en múltiplos de 120; Mac: en múltiplos de 1
+        delta = int(-1 * (event.delta / 120)) if event.delta else 0
+        if delta:
+            self._canvas.yview_scroll(delta, "units")

@@ -15,7 +15,6 @@ from typing import Optional
 
 import openpyxl
 from openpyxl import Workbook
-from openpyxl.worksheet.worksheet import Worksheet
 
 from zai.config import HOJA_ZAPOTECO, HOJA_ESPANOL, HOJA_PALABRAS
 
@@ -94,8 +93,10 @@ class GestorDataset:
         ws_zap = wb[HOJA_ZAPOTECO]
         self.filas = []
         for idx, fila in enumerate(ws_zap.iter_rows(min_row=1, values_only=True)):
-            audio = str(fila[0]).strip() if fila[0] else f"fila_{idx}"
-            texto = str(fila[1]).strip() if fila[1] else ""
+            if not fila:
+                continue
+            audio = str(fila[0]).strip() if fila[0] else f"fila_{idx + 1}"
+            texto = str(fila[1]).strip() if len(fila) > 1 and fila[1] else ""
             if not texto:
                 continue
             self.filas.append(FilaTranscripcion(

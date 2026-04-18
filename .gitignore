@@ -23,6 +23,12 @@ Correct/data/modelo_zapoteco/
 .zai_config.json
 ~/.zai/
 
+# Notebooks de práctica (ejercicios personales, no parte del app)
+Correct/PRACTICA/
+
+# Configuración interna del editor
+Correct/.claude/
+
 # IDEs
 .vscode/
 .idea/

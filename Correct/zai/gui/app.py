@@ -27,19 +27,11 @@ from zai.modes.extractor import ModoExtractor
 from zai.modes.organizer import ModoOrganizador
 
 
-# ── Paleta de colores ────────────────────────────────────────────────
-SIDEBAR_BG   = "#1a1a2e"
-SIDEBAR_SEL  = "#16213e"
-ACCENT       = "#0f3460"
-ACCENT_LIGHT = "#e94560"
-TEXT_MAIN    = "#eaeaea"
-TEXT_DIM     = "#8892a0"
-BG_MAIN      = "#0d1117"
-BG_CARD      = "#161b22"
-BG_INPUT     = "#21262d"
-VERDE        = "#2ea043"
-AMARILLO     = "#d29922"
-ROJO         = "#da3633"
+from zai.gui.theme import (
+    BG_MAIN, BG_CARD, SIDEBAR_BG, SIDEBAR_SEL,
+    ACCENT, ACCENT_L as ACCENT_LIGHT, TEXT as TEXT_MAIN, TEXT_DIM,
+    VERDE, AMARILLO, ROJO,
+)
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
@@ -243,7 +235,7 @@ class _Sidebar(ctk.CTkFrame):
 
         # Footer
         ctk.CTkLabel(
-            self, text="v2.1 — Claude + Ollama",
+            self, text="v2.1 — Ollama + NanoGPT",
             font=ctk.CTkFont("Arial", 9), text_color=TEXT_DIM,
         ).pack(pady=12)
 

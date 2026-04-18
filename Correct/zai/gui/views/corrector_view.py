@@ -16,24 +16,11 @@ Vista del Corrector IA:
 
 from __future__ import annotations
 import tkinter as tk
-import tkinter.font as tkfont
 from tkinter import messagebox
 import customtkinter as ctk
 
 from zai.modes.corrector import ModoCorrector
-
-# Colores
-BG_MAIN  = "#0d1117"
-BG_CARD  = "#161b22"
-BG_INPUT = "#21262d"
-ACCENT   = "#0f3460"
-ACCENT_L = "#e94560"
-TEXT     = "#eaeaea"
-TEXT_DIM = "#8892a0"
-VERDE    = "#2ea043"
-AMARILLO = "#d29922"
-ROJO     = "#da3633"
-AZUL     = "#1f6feb"
+from zai.gui.theme import BG_MAIN, BG_CARD, BG_INPUT, ACCENT, ACCENT_L, TEXT, TEXT_DIM, VERDE, AMARILLO, ROJO, AZUL
 
 
 class CorrectorView(ctk.CTkFrame):

@@ -61,7 +61,7 @@ def _cargar_diccionario(ruta: Path) -> list[tuple[str, str]]:
 class ContextoLinguistico:
     """
     Carga y expone el contexto lingüístico completo.
-    Construye el system prompt para Claude con prompt caching.
+    Construye el system prompt para Ollama.
     """
 
     def __init__(

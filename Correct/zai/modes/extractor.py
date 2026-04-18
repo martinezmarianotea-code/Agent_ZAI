@@ -4,12 +4,11 @@ modes/extractor.py
 Extrae palabras nuevas del dataset usando pipeline híbrido:
   1. Tokenización + dedup (Python puro, instantáneo)
   2. Pre-filtro rápido: Ollama clasifica tokens en lotes
-  3. Claude sugiere traducciones para las candidatas
+  3. Ollama sugiere traducciones para las candidatas
 """
 
 from __future__ import annotations
 import re
-import unicodedata
 from collections import Counter
 from dataclasses import dataclass
 from typing import Callable, Optional

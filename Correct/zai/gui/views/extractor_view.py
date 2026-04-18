@@ -13,18 +13,7 @@ import threading
 
 from zai.modes.extractor import ModoExtractor
 from zai.excel import PalabraNueva
-
-BG_MAIN  = "#0d1117"
-BG_CARD  = "#161b22"
-BG_INPUT = "#21262d"
-ACCENT   = "#0f3460"
-ACCENT_L = "#e94560"
-TEXT     = "#eaeaea"
-TEXT_DIM = "#8892a0"
-VERDE    = "#2ea043"
-AMARILLO = "#d29922"
-AZUL     = "#1f6feb"
-ROJO     = "#da3633"
+from zai.gui.theme import BG_MAIN, BG_CARD, BG_INPUT, ACCENT, ACCENT_L, TEXT, TEXT_DIM, VERDE, AMARILLO, ROJO, AZUL
 
 
 class ExtractorView(ctk.CTkFrame):

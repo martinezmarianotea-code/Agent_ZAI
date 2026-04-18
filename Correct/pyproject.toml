@@ -4,17 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zai"
-version = "2.0.0"
+version = "2.1.0"
 description = "ZAI — Agente Inteligente para Zapoteco del Istmo (Diidxazá)"
 requires-python = ">=3.10"
 dependencies = [
-    "anthropic>=0.45",
-    "ollama>=0.4",
-    "pandas>=2.0",
+    "requests>=2.31",
     "openpyxl>=3.1",
     "pypdf>=4.0",
     "customtkinter>=5.2",
     "pillow>=10.0",
+    "torch>=2.0",
 ]
 
 [tool.setuptools.packages.find]

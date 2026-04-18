@@ -24,10 +24,10 @@ class EstadoSesion:
     indice:       int  = 0
     guardadas:    int  = 0
     analizadas:   int  = 0
-    conversacion: list[dict] = field(default_factory=list)  # historial Claude
+    conversacion: list[dict] = field(default_factory=list)  # historial de conversación
 
     def registrar_respuesta(self, zapoteco: str, respuesta_ia: str) -> None:
-        """Añade el turno al historial para que Claude recuerde el contexto."""
+        """Añade el turno al historial para mantener contexto multi-turno."""
         # Mantener historial corto (últimos 6 mensajes = 3 turnos)
         self.conversacion.append({"role": "assistant", "content": respuesta_ia})
         if len(self.conversacion) > 12:
