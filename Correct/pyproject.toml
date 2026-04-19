@@ -20,8 +20,5 @@ dependencies = [
 where = ["."]
 include = ["zai*"]
 
-[project.scripts]
-zai-cli = "zai.__main__:main"
-
 [project.gui-scripts]
 zai = "zai.__main__:main"

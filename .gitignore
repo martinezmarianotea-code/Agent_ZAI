@@ -26,8 +26,12 @@ Correct/data/modelo_zapoteco/
 # Notebooks de práctica (ejercicios personales, no parte del app)
 Correct/PRACTICA/
 
-# Configuración interna del editor
+# Configuración interna del editor (Claude Code)
+.claude/
 Correct/.claude/
+
+# Artefactos de instalación (generados por pip install -e .)
+*.egg-info/
 
 # IDEs
 .vscode/
