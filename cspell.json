@@ -6,12 +6,146 @@
     "**/*.pyc",
     "**/data/**",
     "**/*.xlsx",
-    "**/*.json"
+    "**/*.json",
+    "**/*.egg-info/**",
+    "**/PRACTICA/**",
+    "**/.git/**"
+  ],
+  "ignoreRegExpList": [
+    "\\b[a-z]+(?:_[a-z0-9]+){1,}\\b",
+    "\\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\\b",
+    "\\b[A-Za-z]+[A-Z][a-z]+[A-Za-z]*\\b",
+    "#\\s*──.*",
+    "https?://[^\\s]+",
+    "\\{[^}]+\\}",
+    "\\b[a-z]+\\.py\\b",
+    "\\b\\w+\\.\\w+\\b"
   ],
   "words": [
     "Ollama", "ollama", "qwen", "NanoGPT", "nanogpt",
-    "Diidxazá", "diidxazá", "zapoteco", "Zapoteco",
+    "Diidxazá", "diidxazá", "zapoteco", "Zapoteco", "zapoteca", "zapotecas", "zapotecos",
     "customtkinter", "openpyxl", "pypdf", "ctk",
-    "ZAI", "zai", "autoguardado", "dataclass", "isinstance"
+    "ZAI", "zai", "autoguardado", "dataclass", "isinstance",
+
+    "abajo", "acciones", "acción", "acentuada", "aceptadas", "aclaración",
+    "actual", "actualmente", "acumuladas", "agregadas", "ajustes",
+    "alfabeto", "algo", "ambigüedad", "amigable", "amplio",
+    "analizadas", "analizando", "analizar", "análisis",
+    "anterior", "antes", "antigua", "aprobadas", "apóstrofo",
+    "archivo", "archivos", "arquitectura", "área",
+    "asistente", "atención", "automáticamente", "automático", "avanzar",
+    "ayuda", "ayudar", "ayudarte", "aún",
+
+    "baja", "bajo", "barra", "básica", "bienvenida",
+    "bloques", "botones", "botón", "búsqueda",
+
+    "cabecera", "cada", "calibrar", "cambios",
+    "candidatas", "candidatos", "caracteres",
+    "carga", "cargadas", "cargado", "cargar", "cargó", "carácter",
+    "castellano", "centralizada", "cercana", "cerrando", "cerrar",
+    "certeza", "claramente", "clasificación", "clasificados", "clasificar",
+    "clave", "colores", "columna", "columnas", "comando",
+    "compatibilidad", "compatibles", "completado", "completo",
+    "comportamiento", "comunes", "comunicarse", "comunicarte",
+    "configuración", "confirmación", "confirmar",
+    "conocidas", "conocido", "conocimiento", "consonantes",
+    "construir", "consulta", "contenido", "contexto",
+    "conversación", "conversacional",
+    "correcciones", "corrección", "correctamente", "corrector",
+    "corregida", "corregir", "corregirán", "corresponde", "corrige",
+    "corrupto", "cortadas", "corpus",
+
+    "dado", "datos", "decide", "desconocida", "desconocido",
+    "desde", "deshabilitado", "deshabilitar", "después",
+    "detalle", "detectar", "devuelve", "diccionario",
+    "diferencias", "dimensión", "dinámicamente", "directo",
+    "disponible", "dígrafos", "dudas",
+
+    "ejemplo", "ejemplos", "empezar", "encadenamiento",
+    "entrada", "entrenado", "entrenador", "entrenamiento", "entrenar",
+    "entusiasta", "enviar", "envía", "errores",
+    "escribe", "escribir", "escritura",
+    "español", "española", "especializado", "específicas",
+    "estable", "estado", "estadísticas", "estructura",
+    "exploración", "explicación", "exportadas", "exportar",
+    "extracción", "extraer",
+
+    "fallback", "filas", "filtrar", "filtro",
+    "flujo", "fonéticas", "formato", "fragmento",
+    "frecuencias", "fresca", "fuentes",
+
+    "generar", "gestión", "gestiona",
+    "guarda", "guardadas", "guardado", "guardar",
+
+    "habilitar", "heurística", "heurísticas",
+    "histórico", "historial", "honestamente", "hoja", "hojas",
+
+    "identificadas", "idioma", "información",
+    "iniciando", "inicializar", "instrucciones",
+
+    "lingüísticas", "lingüístico", "lista", "listado",
+    "local", "locales", "localmente", "lote", "lotes",
+    "línea", "líneas", "lógica", "límite",
+
+    "mantener", "manualmente", "morfología", "mostrar",
+    "módulo", "múltiples",
+
+    "nombre", "nombres", "nueva", "nuevas", "nuevo", "nuevos", "número",
+
+    "objeto", "objetos", "observación", "opcional",
+    "ordenables", "ordenada", "ordenadas", "ordenado", "ordenados",
+    "ordenamiento", "ordenar", "ortografía", "ortográfico",
+
+    "paciente", "palabra", "palabras", "pantalla",
+    "parece", "parecen", "parámetros", "pedagógico", "pequeño",
+    "perplejidad", "persistente", "personalidad",
+    "plano", "posible", "pregunta", "preguntas", "presiona",
+    "primer", "primera", "primeras", "primero", "principal",
+    "privado", "problema", "proceso", "profundas", "profundo",
+    "progreso", "pronunciación",
+
+    "razonable", "recursos", "reemplaza", "reescribir",
+    "referencia", "reglas", "respetando", "responder",
+    "respuesta", "resultado", "retorna", "revisa", "reutilizable",
+    "rápida", "rápidas", "rápido",
+
+    "salida", "secuencia", "sencillas", "sesión",
+    "significado", "siguiente", "siguientes", "similares", "similitud",
+    "síncrona", "síncrono", "sistema", "sonido",
+    "sugerencias", "sugeridas", "sugerir",
+
+    "tiempo", "tipo", "tokenización", "total",
+    "traducción", "traducciones", "transcripciones", "transcripción",
+    "turno", "turnos", "típicamente", "título", "tónica", "tónicas",
+
+    "umbral", "único", "únicos", "usuario",
+
+    "vacía", "vacío", "valores", "ventana", "verdad",
+    "verificar", "versión", "vista",
+
+    "Istmo", "istmo", "binnizá", "guendanabani", "guendanabáni",
+    "guendaranaxhii", "biñi", "cuní", "cuni",
+    "quebrada", "quebradas", "tónicas", "vocal", "vocales",
+    "digrafo", "dígrafos",
+
+    "reordenado", "reordena", "integración", "integrar",
+    "omitidas", "sobrescribibles",
+
+    "PANTALLA", "corrección", "análisis",
+    "fonética", "fonéticas", "fonético",
+
+    "lanzar", "cargando", "exportado", "importar",
+    "pestaña", "pestañas", "selección", "seleccionar",
+    "aplicación", "configurar", "inicio", "cerrar",
+
+    "pescado", "lluvia", "frases", "culturales",
+    "cultural", "lingüístico",
+
+    "qué", "cómo", "dónde", "cuándo", "cuántas",
+    "también", "además", "después", "través", "según",
+    "más", "así", "sí", "está", "están",
+    "aquí", "ahí", "todavía", "ya", "aún",
+    "ningún", "ninguna", "algún", "alguna",
+    "última", "último", "últimos", "único", "únicos"
   ]
 }
