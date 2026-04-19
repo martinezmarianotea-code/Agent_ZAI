@@ -1,0 +1,17 @@
+{
+  "version": "0.2",
+  "language": "en,es",
+  "ignorePaths": [
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "**/data/**",
+    "**/*.xlsx",
+    "**/*.json"
+  ],
+  "words": [
+    "Ollama", "ollama", "qwen", "NanoGPT", "nanogpt",
+    "Diidxazá", "diidxazá", "zapoteco", "Zapoteco",
+    "customtkinter", "openpyxl", "pypdf", "ctk",
+    "ZAI", "zai", "autoguardado", "dataclass", "isinstance"
+  ]
+}
