@@ -5,8 +5,12 @@ Lógica del Modo Corrector.
 
 Mantiene el estado de una sesión de corrección:
   - fila actual, historial de cambios
-  - integra el pre-análisis de Ollama + la corrección de Claude
+  - análisis con Ollama bajo demanda (no automático)
   - auto-guardado configurable
+
+Fuentes de datos aceptadas:
+  - Excel (GestorDataset) — comportamiento original
+  - Texto libre (lista de líneas) — pegar o cargar .txt
 """
 
 from __future__ import annotations
@@ -54,17 +58,55 @@ class ModoCorrector:
         self.agente = agente
         self.sesion = EstadoSesion()
         self._pendientes: list[FilaTranscripcion] = []
+        # Filas cargadas desde texto libre (no Excel)
+        self._filas_libres: list[FilaTranscripcion] = []
+        self._modo_libre = False   # True cuando se cargó texto plano
+
+    # ── Carga de texto libre ─────────────────────────────────────────
+
+    def cargar_texto(self, texto: str) -> int:
+        """
+        Carga líneas de texto plano como filas a corregir.
+        Cada línea no-vacía se convierte en una fila independiente.
+        Retorna el número de filas cargadas.
+        """
+        lineas = [l.strip() for l in texto.splitlines() if l.strip()]
+        self._filas_libres = [
+            FilaTranscripcion(indice=i, audio=f"línea {i + 1}", zapoteco=linea)
+            for i, linea in enumerate(lineas)
+        ]
+        self.sesion = EstadoSesion()
+        self._pendientes.clear()
+        self._modo_libre = True
+        return len(self._filas_libres)
+
+    def limpiar_sesion(self) -> None:
+        """Vuelve al estado inicial vacío."""
+        self._filas_libres.clear()
+        self._modo_libre = False
+        self.sesion = EstadoSesion()
+        self._pendientes.clear()
 
     # ── Navegación ───────────────────────────────────────────────────
 
     @property
+    def _filas(self) -> list[FilaTranscripcion]:
+        return self._filas_libres if self._modo_libre else self.ds.filas
+
+    @property
+    def _total(self) -> int:
+        return len(self._filas)
+
+    @property
     def fila_actual(self) -> Optional[FilaTranscripcion]:
-        if self.sesion.indice < self.ds.total:
-            return self.ds.obtener_fila(self.sesion.indice)
+        if self.sesion.indice < self._total:
+            return self._filas[self.sesion.indice]
         return None
 
     @property
     def espanol_actual(self) -> str:
+        if self._modo_libre:
+            return ""
         fila = self.fila_actual
         if fila:
             return self.ds.traduccion_de(fila.audio)
@@ -72,11 +114,16 @@ class ModoCorrector:
 
     @property
     def progreso(self) -> tuple[int, int]:
-        return self.sesion.indice, self.ds.total
+        return self.sesion.indice, self._total
 
     @property
     def hay_mas(self) -> bool:
-        return self.sesion.indice < self.ds.total
+        return self.sesion.indice < self._total
+
+    @property
+    def tiene_datos(self) -> bool:
+        """True si hay filas cargadas (Excel o texto libre)."""
+        return self._total > 0
 
     def avanzar(self) -> None:
         self.sesion.indice += 1
@@ -100,12 +147,12 @@ class ModoCorrector:
             return {}
         return self.agente.preanalizar(fila.zapoteco, self.espanol_actual)
 
-    def analizar_con_claude(
+    def analizar(
         self,
         on_chunk: Callable[[str], None],
         on_done:  Callable[[str], None],
     ) -> None:
-        """Lanza análisis profundo con Claude (streaming en background thread)."""
+        """Lanza análisis de la fila actual con Ollama (streaming, bajo demanda)."""
         fila = self.fila_actual
         if not fila:
             on_done("")
@@ -119,11 +166,14 @@ class ModoCorrector:
             zapoteco  = fila.texto_vigente,
             espanol   = self.espanol_actual,
             n         = self.sesion.indice,
-            total     = self.ds.total,
+            total     = self._total,
             historial = self.sesion.conversacion.copy(),
             on_chunk  = on_chunk,
             on_done   = _done,
         )
+
+    # Alias para compatibilidad con código existente
+    analizar_con_claude = analizar
 
     def responder_usuario(
         self,
@@ -145,7 +195,7 @@ class ModoCorrector:
             zapoteco  = fila.texto_vigente,
             espanol   = self.espanol_actual,
             n         = self.sesion.indice,
-            total     = self.ds.total,
+            total     = self._total,
             historial = self.sesion.conversacion.copy(),
             on_chunk  = on_chunk,
             on_done   = _done,
